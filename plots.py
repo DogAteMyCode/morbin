@@ -1,5 +1,5 @@
 import locale
-locale.setlocale(locale.LC_TIME, 'Spanish')
+# locale.setlocale(locale.LC_TIME, 'es_MX')
 from dash import Dash, html, dcc, callback, Output, Input
 from sklearn.preprocessing import StandardScaler
 from plotly.graph_objs import Scatter
