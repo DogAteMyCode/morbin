@@ -56,7 +56,7 @@ total_sickness.sort_values(by='value', ascending=False, inplace=True)
 fig3 = px.line(s_data[s_data.sickness.isin(total_sickness[0:10].sickness)], x='date', y='value', color='sickness', log_y=True,
         title='Top 10 enfermedades de los últimos 2 años por mes')
 
-app = Dash()
+app = Dash(__name__)
 
 app.layout = html.Div([
     html.Div(children='Datos y Análisis IMSS'),
