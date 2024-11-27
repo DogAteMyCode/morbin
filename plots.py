@@ -30,7 +30,6 @@ fig_camas_by_year = px.bar(
     title='Distribución de Camas por Estado y Año',
     labels={'Total camas area hospitalización': 'Total de Camas', 'Nombre Estado': 'Estado'},
     color_discrete_sequence=px.colors.qualitative.Set2,
-    template="plotly_dark"
 )
 options = dict(
     xaxis={'categoryorder': 'total descending'},
