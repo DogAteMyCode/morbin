@@ -1,5 +1,4 @@
 dash
-scikit-learn
 plotly
 geopandas
 pandas

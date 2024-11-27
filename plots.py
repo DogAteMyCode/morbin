@@ -1,14 +1,50 @@
 import locale
-# locale.setlocale(locale.LC_TIME, 'es_MX')
+
+#locale.setlocale(locale.LC_TIME, 'es_MX')
 from dash import Dash, html, dcc, callback, Output, Input
-from sklearn.preprocessing import StandardScaler
 from plotly.graph_objs import Scatter
-from sklearn.decomposition import PCA
 import plotly.express as px
 import geopandas as gpd
 import pandas as pd
 
+#### Data for predictions
 
+pred_ai = pd.read_json('predictions.json')
+
+f_pred = px.line(pred_ai,
+                 x="time",
+                 y=["actual", "pred"],
+                 title="Predicción de costos Ciudad de México"
+                 )
+
+factor_loadings = pd.read_csv("factor_loadings.csv", index_col=0)
+loadings_transposed = factor_loadings.transpose()
+f_loading = px.imshow(loadings_transposed, x=loadings_transposed.columns.tolist(),
+                      y=loadings_transposed.index.tolist(),
+                      color_continuous_scale="RdBu",
+                      labels=dict(x="Variables", y="Factor Analisis", color="Loading Value"),
+                      )
+f_loading.update_layout(
+    xaxis=dict(
+        title="Variables",
+        titlefont=dict(size=18),
+        tickfont=dict(size=10),
+        tickangle=90,  # Rotate x-axis labels vertically
+    ),
+    yaxis=dict(
+        title="Principal Components",
+        titlefont=dict(size=18),
+        tickfont=dict(size=14),
+    ),
+    coloraxis_colorbar=dict(
+        title="Loading Value"
+    ),
+    height=800,  # Fixed height
+    width=max(800, 40 * len(loadings_transposed.columns)),  # Dynamically calculate width
+    template="plotly_white",
+)
+
+f_loading.update_xaxes(side='top')
 
 #### Data For Resources
 
@@ -19,7 +55,8 @@ data_resource['Nombre Estado'] = data_resource['Nombre Estado'].str.strip()
 data_resource = data_resource[~data_resource['Nombre Estado'].isin(['Desconocido'])]
 data_resource['Nombre Estado'] = data_resource['Nombre Estado'].replace({'MÉXICO': 'Estado de México'})
 
-camas_data_by_year = data_resource.groupby(['Año', 'Nombre Estado'])['Total camas area hospitalización'].sum().reset_index()
+camas_data_by_year = data_resource.groupby(['Año', 'Nombre Estado'])[
+    'Total camas area hospitalización'].sum().reset_index()
 
 fig_camas_by_year = px.bar(
     camas_data_by_year,
@@ -47,7 +84,7 @@ fig_camas_by_year.update_layout(
 )
 
 fig_camas_by_year.layout.updatemenus[0].buttons[0].args[1]["frame"]["duration"] = 2000
-fig_camas_by_year['layout']['sliders'][0]['pad']=dict(r= 10, t= 150.0,)
+fig_camas_by_year['layout']['sliders'][0]['pad'] = dict(r=10, t=150.0, )
 
 consultorios_columns = [col for col in data_resource.columns if 'Consultorios' in col]
 consultorios_data_by_year = data_resource[consultorios_columns + ['Nombre Estado', 'Año']].groupby(
@@ -67,7 +104,7 @@ fig_consultorios_by_year = px.bar(
     animation_frame='Año',
     title='Distribución de Consultorios por Especialidad y Estado a lo Largo de los Años',
     labels={'Nombre Estado': 'Estado', 'Cantidad': 'Número de Consultorios'},
-    range_y= (0, 5000)
+    range_y=(0, 5000)
 )
 
 fig_consultorios_by_year.update_layout(
@@ -75,7 +112,7 @@ fig_consultorios_by_year.update_layout(
 )
 
 fig_consultorios_by_year.layout.updatemenus[0].buttons[0].args[1]["frame"]["duration"] = 2000
-fig_consultorios_by_year['layout']['sliders'][0]['pad']=dict(r= 10, t= 150.0,)
+fig_consultorios_by_year['layout']['sliders'][0]['pad'] = dict(r=10, t=150.0, )
 
 consultas_data = data_resource.groupby('Año')['Total de consultorios'].sum().reset_index()
 fig_consultas = px.line(
@@ -94,7 +131,6 @@ equipamiento_columns = [
 for col in equipamiento_columns:
     if col in data_resource.columns:
         data_resource[col] = pd.to_numeric(data_resource[col], errors='coerce').fillna(0)
-
 
 equipamiento_data_by_year = data_resource.groupby(['Año', 'Nombre Estado'])[equipamiento_columns].sum().reset_index()
 
@@ -119,7 +155,7 @@ fig_equipamiento_by_year.update_layout(
     **options
 )
 fig_equipamiento_by_year.layout.updatemenus[0].buttons[0].args[1]["frame"]["duration"] = 2000
-fig_equipamiento_by_year['layout']['sliders'][0]['pad']=dict(r= 10, t= 150.0,)
+fig_equipamiento_by_year['layout']['sliders'][0]['pad'] = dict(r=10, t=150.0, )
 
 state_counts_by_year = data_resource.groupby(['Año', 'Nombre Estado']).size().reset_index(name='Número de Casos')
 
@@ -144,6 +180,8 @@ fig_state_counts_by_year = px.bar(
 fig_state_counts_by_year.update_layout(
     **options
 )
+fig_state_counts_by_year.layout.updatemenus[0].buttons[0].args[1]["frame"]["duration"] = 2000
+fig_state_counts_by_year['layout']['sliders'][0]['pad'] = dict(r=10, t=150.0, )
 
 #### Data For Sickness
 
@@ -169,8 +207,12 @@ app = Dash(__name__)
 
 app.layout = html.Div([
     html.Nav([
-        dcc.Dropdown(options=[{'label': "Morbiliad", "value": 1}, {"label": "Recursos", "value": 2}], id="scene",
-                     value=1, className="nav-link"),
+        dcc.Dropdown(options=[
+            {'label': "Morbiliad", "value": 1},
+            {"label": "Recursos", "value": 2},
+            {"label": "Proyección", "value": 3},
+        ], id="scene",
+            value=1, className="nav-link"),
     ]),
     html.Hr(),
     html.Div([
@@ -200,6 +242,15 @@ app.layout = html.Div([
             dcc.Graph()
         ],
         id='resource_layout'
+    ),
+    html.Div(
+        children=[
+            html.Div([
+                dcc.Graph(),
+            ]),
+            dcc.Graph()
+        ],
+        id='forecast_layout'
     )
 ])
 
@@ -232,6 +283,8 @@ def sickness_scene():
         ]),
     ], [
 
+    ], [
+
     ]
 
 
@@ -246,12 +299,35 @@ def resource_scene():
         dcc.Graph(figure=fig_consultas),
         dcc.Graph(figure=fig_equipamiento_by_year),
         dcc.Graph(figure=fig_state_counts_by_year)
+    ], [
+
+    ]
+
+
+def forecast_scene():
+    return [], [], [
+        html.Div(children='Proyecciones', style={'padding-left': "50px"}),
+        html.Hr(),
+        html.Div([
+            dcc.Graph(figure=f_loading),
+        ],
+            style={
+                "width": "100%",
+                "height": "600px",
+                "white-space": "nowrap",
+                "position": "relative",
+                "overflow-x": "scroll",
+                "overflow-y": "hidden",
+                "-webkit-overflow-scrolling": "touch"}
+        ),
+        dcc.Graph(figure=f_pred),
     ]
 
 
 @callback(
     [Output(component_id='sickness_layout', component_property='children'),
-     Output(component_id='resource_layout', component_property='children')],
+     Output(component_id='resource_layout', component_property='children'),
+     Output(component_id='forecast_layout', component_property='children')],
     [Input(component_id='scene', component_property='value')],
 )
 def scene_changer(value):
@@ -259,6 +335,8 @@ def scene_changer(value):
         return sickness_scene()
     elif value == 2:
         return resource_scene()
+    elif value == 3:
+        return forecast_scene()
     else:
         return sickness_scene()
 
