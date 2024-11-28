@@ -1,6 +1,6 @@
 import locale
 
-#locale.setlocale(locale.LC_TIME, 'es_MX')
+# locale.setlocale(locale.LC_TIME, 'es_MX')
 from dash import Dash, html, dcc, callback, Output, Input
 from plotly.graph_objs import Scatter
 import plotly.express as px
@@ -32,7 +32,7 @@ f_loading.update_layout(
         tickangle=90,  # Rotate x-axis labels vertically
     ),
     yaxis=dict(
-        title="Principal Components",
+        title="Analisis de Factores",
         titlefont=dict(size=18),
         tickfont=dict(size=14),
     ),
